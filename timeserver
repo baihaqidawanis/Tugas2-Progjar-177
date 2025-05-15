@@ -1,0 +1,44 @@
+import socket
+import threading
+from datetime import datetime
+
+# Fungsi untuk menangani koneksi client
+def handle_client(client_socket, addr):
+    print(f"[TERHUBUNG] Client dari {addr}")
+    try:
+        while True:
+            data = client_socket.recv(1024)
+            if not data:
+                break
+
+            message = data.decode('utf-8')
+            print(f"[DITERIMA dari {addr}] {repr(message)}")
+
+            if message.startswith("TIME") and message.endswith('\r\n'):
+                now = datetime.now()
+                jam = now.strftime("%H:%M:%S")
+                response = f"JAM {jam}\r\n"
+                client_socket.send(response.encode('utf-8'))
+            elif "QUIT\r\n" in message:
+                print(f"[DISKONEKSI] Client dari {addr} meminta keluar.")
+                break
+            else:
+                print(f"[PERINGATAN] Permintaan tidak dikenali dari {addr}: {repr(message)}")
+    finally:
+        client_socket.close()
+        print(f"[SELESAI] Koneksi dengan {addr} ditutup.")
+
+# Main server
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('', 45000))
+    server.listen(5)
+    print("[MENUNGGU] Server berjalan di port 45000...")
+
+    while True:
+        client_socket, addr = server.accept()
+        client_thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+        client_thread.start()
+
+if __name__ == "__main__":
+    start_server()
